@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Heart Catcher</string>
+    <string name="title_activity_main">Heart Catcher</string>
+    <string name="package_name">com.heartcatcher.game</string>
+    <string name="custom_url_scheme">com.heartcatcher.game</string>
+    <string name="app_description">A romantic heart catching game</string>
+    <string name="developer_name">Your Name</string>
+</resources>

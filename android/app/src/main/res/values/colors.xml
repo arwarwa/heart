@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#FF69B4</color>
+    <color name="colorPrimaryDark">#FF1493</color>
+    <color name="colorAccent">#FFB6C1</color>
+    <color name="splash_background">#FF69B4</color>
+    <color name="ic_launcher_background">#FF69B4</color>
+    <color name="status_bar_color">#FF1493</color>
+    <color name="navigation_bar_color">#FF1493</color>
+</resources>
