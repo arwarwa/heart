@@ -758,7 +758,7 @@ export default function Component() {
     triggerVictoryAnimation,
   ])
 
-  const cleanupMusic = useCallback(() => {
+  const cleanupMusicFn = useCallback(() => {
     if (backgroundMusic) {
       backgroundMusic.pause()
     }
@@ -1103,6 +1103,42 @@ export default function Component() {
       setVideoMuted(videoRef.current.muted)
     }
   }, [])
+
+  // Cleanup background music on unmount
+
+  useEffect(() => {
+    return () => {
+      cleanupMusicFn()
+      if (uploadedMusicUrl) {
+        URL.revokeObjectURL(uploadedMusicUrl)
+      }
+      if (uploadedMusicRef.current) {
+        uploadedMusicRef.current.pause()
+      }
+    }
+  }, [cleanupMusicFn, uploadedMusicUrl])
+
+  // Add this useEffect after the existing useEffects
+  useEffect(() => {
+    // Update volume for custom music
+    if (uploadedMusicRef.current) {
+      uploadedMusicRef.current.volume = musicVolume
+    }
+
+    // Restart generated music when volume changes significantly
+    if (backgroundMusic && musicPlaying && musicEnabled && !uploadedMusicUrl) {
+      stopBackgroundMusic()
+      setTimeout(() => createRomanticMusic(), 100)
+    }
+  }, [
+    musicVolume,
+    backgroundMusic,
+    musicPlaying,
+    musicEnabled,
+    stopBackgroundMusic,
+    createRomanticMusic,
+    uploadedMusicUrl,
+  ])
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-200 p-4">
@@ -1725,40 +1761,4 @@ export default function Component() {
       </div>
     </div>
   )
-
-  // Cleanup background music on unmount
-  useEffect(() => {
-    return () => {
-      cleanupMusic()
-      if (uploadedMusicUrl) {
-        URL.revokeObjectURL(uploadedMusicUrl)
-      }
-      if (uploadedMusicRef.current) {
-        uploadedMusicRef.current.pause()
-      }
-    }
-  }, [cleanupMusic, uploadedMusicUrl])
-
-  // Add this useEffect after the existing useEffects
-  useEffect(() => {
-    // Update volume for custom music
-    if (uploadedMusicRef.current) {
-      uploadedMusicRef.current.volume = musicVolume
-    }
-
-    // Restart generated music when volume changes significantly
-    if (backgroundMusic && musicPlaying && musicEnabled && !uploadedMusicUrl) {
-      stopBackgroundMusic()
-      setTimeout(() => createRomanticMusic(), 100)
-    }
-  }, [
-    musicVolume,
-    backgroundMusic,
-    musicPlaying,
-    musicEnabled,
-    stopBackgroundMusic,
-    createRomanticMusic,
-    uploadedMusicUrl,
-  ])
 }
-\
