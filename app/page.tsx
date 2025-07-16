@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Play, Pause, RotateCcw, Settings, Plus, Trash2, Volume2, VolumeX, Music } from "lucide-react"
+import Image from "next/image"
 
 interface Heart {
   id: number
@@ -44,6 +45,28 @@ interface Firework {
 }
 
 export default function Component() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white p-4">
+      {/* Game logo */}
+      <Image src="/placeholder.svg" width={128} height={128} alt="Heart Catcher logo" priority />
+
+      {/* Title */}
+      <h1 className="text-3xl font-extrabold tracking-tight">{"Welcome to Heart Catcher"}</h1>
+
+      {/* Tagline */}
+      <p className="max-w-prose text-center text-muted-foreground">
+        {"Catch hearts, unlock romance, and start your adventure. Built with Next.js 15, Capacitor, and Tailwind CSS."}
+      </p>
+
+      {/* Call to action */}
+      <Button asChild>
+        <a href="#play">{"Start Playing"}</a>
+      </Button>
+    </main>
+  )
+}
+
+export function GameComponent() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
 
