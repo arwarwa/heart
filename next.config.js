@@ -11,7 +11,6 @@ const nextConfig = {
   distDir: "out",
 
   // Performance optimizations
-  swcMinify: true,
   compress: true,
 
   // Build optimizations
@@ -84,7 +83,6 @@ const nextConfig = {
 
   // Experimental features
   experimental: {
-    esmExternals: false,
     optimizeCss: true,
     optimizePackageImports: ["lucide-react"],
   },
