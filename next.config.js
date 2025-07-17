@@ -1,19 +1,10 @@
 /** @type {import('next').NextConfig} */
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
-  enabled: process.env.ANALYZE === "true",
-})
-
 const nextConfig = {
-  // Static export for mobile
-  output: "export",
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
-  distDir: "out",
+  // Web-optimized configuration
+  reactStrictMode: true,
+  swcMinify: true,
 
-  // Performance optimizations
-  compress: true,
-
-  // Build optimizations
+  // Build optimizations for web
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -21,41 +12,15 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Image optimization for mobile
+  // Image optimization for web
   images: {
-    unoptimized: true,
-    loader: "custom",
-    loaderFile: "./src/utils/image-loader.js",
     formats: ["image/webp", "image/avif"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // Asset configuration
-  assetPrefix: "./",
-  basePath: "",
-
-  // Webpack configuration for mobile compatibility
+  // Webpack configuration for web optimization
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Optimize for mobile
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        stream: false,
-        url: false,
-        zlib: false,
-        http: false,
-        https: false,
-        assert: false,
-        os: false,
-        path: false,
-      }
-    }
-
     // Bundle splitting for better caching
     config.optimization.splitChunks = {
       chunks: "all",
@@ -74,17 +39,12 @@ const nextConfig = {
       },
     }
 
-    // Minimize bundle size
-    config.optimization.usedExports = true
-    config.optimization.sideEffects = false
-
     return config
   },
 
-  // Experimental features
+  // Experimental features for web
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ["lucide-react"],
   },
 
   // Compiler options
@@ -95,10 +55,9 @@ const nextConfig = {
             exclude: ["error", "warn"],
           }
         : false,
-    reactRemoveProperties: process.env.NODE_ENV === "production",
   },
 
-  // Headers for PWA support
+  // Security headers
   async headers() {
     return [
       {
@@ -122,4 +81,4 @@ const nextConfig = {
   },
 }
 
-module.exports = withBundleAnalyzer(nextConfig)
+module.exports = nextConfig

@@ -4,8 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Play, Pause, RotateCcw, Settings, Plus, Trash2, Volume2, VolumeX, Music } from "lucide-react"
-import Image from "next/image"
+import { Play, Settings, Plus, Trash2, Volume2, VolumeX, Music } from "lucide-react"
 
 interface Heart {
   id: number
@@ -44,29 +43,7 @@ interface Firework {
   }[]
 }
 
-export default function Component() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white p-4">
-      {/* Game logo */}
-      <Image src="/placeholder.svg" width={128} height={128} alt="Heart Catcher logo" priority />
-
-      {/* Title */}
-      <h1 className="text-3xl font-extrabold tracking-tight">{"Welcome to Heart Catcher"}</h1>
-
-      {/* Tagline */}
-      <p className="max-w-prose text-center text-muted-foreground">
-        {"Catch hearts, unlock romance, and start your adventure. Built with Next.js 15, Capacitor, and Tailwind CSS."}
-      </p>
-
-      {/* Call to action */}
-      <Button asChild>
-        <a href="#play">{"Start Playing"}</a>
-      </Button>
-    </main>
-  )
-}
-
-export function GameComponent() {
+export default function HeartCatcherGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
 
@@ -93,7 +70,7 @@ export function GameComponent() {
   // SOUND STATE
   const [soundEnabled, setSoundEnabled] = useState(true)
 
-  // BACKGROUND MUSIC STATE - IMPROVED WITH ACTUAL AUDIO
+  // BACKGROUND MUSIC STATE
   const [backgroundMusic, setBackgroundMusic] = useState<HTMLAudioElement | null>(null)
   const [musicPlaying, setMusicPlaying] = useState(false)
   const [musicVolume, setMusicVolume] = useState(0.3)
@@ -106,7 +83,7 @@ export function GameComponent() {
   const [backgroundOffset, setBackgroundOffset] = useState(0)
 
   // GAME SETTINGS
-  const [targetScore, setTargetScore] = useState(50) // Target hearts to collect
+  const [targetScore, setTargetScore] = useState(50)
   const [newTargetScore, setNewTargetScore] = useState("50")
 
   // Editable messages
@@ -129,22 +106,18 @@ export function GameComponent() {
   const [heartBurstActive, setHeartBurstActive] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // ADD THESE NEW VIDEO UPLOAD STATES:
+  // UPLOAD STATES
   const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null)
-  const [showVideoUpload, setShowVideoUpload] = useState(false)
   const [videoUploading, setVideoUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ADD THESE NEW CHARACTER UPLOAD STATES:
   const [uploadedCharacterUrl, setUploadedCharacterUrl] = useState<string | null>(null)
   const [characterUploading, setCharacterUploading] = useState(false)
   const characterFileInputRef = useRef<HTMLInputElement>(null)
 
-  // ADD THESE NEW AUDIO STATES:
   const [showAudioPrompt, setShowAudioPrompt] = useState(false)
   const [videoMuted, setVideoMuted] = useState(false)
 
-  // ADD THESE NEW MUSIC UPLOAD STATES:
   const [uploadedMusicUrl, setUploadedMusicUrl] = useState<string | null>(null)
   const [musicUploading, setMusicUploading] = useState(false)
   const musicFileInputRef = useRef<HTMLInputElement>(null)
@@ -156,15 +129,65 @@ export function GameComponent() {
   const particleIdCounter = useRef(0)
   const fireworkIdCounter = useRef(0)
 
-  const CANVAS_WIDTH = 350
-  const CANVAS_HEIGHT = 700
+  const CANVAS_WIDTH = 400
+  const CANVAS_HEIGHT = 600
+
+  // KEYBOARD CONTROLS FOR WEB
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== "playing") return
+      
+      switch (e.key) {
+        case "ArrowLeft":
+        case "a":
+        case "A":
+          setIsMovingLeft(true)
+          e.preventDefault()
+          break
+        case "ArrowRight":
+        case "d":
+        case "D":
+          setIsMovingRight(true)
+          e.preventDefault()
+          break
+        case " ":
+          if (gameState === "playing") {
+            pauseGame()
+          }
+          e.preventDefault()
+          break
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case "ArrowLeft":
+        case "a":
+        case "A":
+          setIsMovingLeft(false)
+          break
+        case "ArrowRight":
+        case "d":
+        case "D":
+          setIsMovingRight(false)
+          break
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("keyup", handleKeyUp)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("keyup", handleKeyUp)
+    }
+  }, [gameState])
 
   // VICTORY SOUND
   const playVictorySound = useCallback(() => {
     if (!soundEnabled) return
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      // Play a victory melody
       const frequencies = [523, 659, 784, 1047] // C, E, G, C (major chord)
       frequencies.forEach((freq, index) => {
         setTimeout(() => {
@@ -227,11 +250,10 @@ export function GameComponent() {
     playSound(600, 0.8, "message")
   }, [playSound])
 
-  // Create romantic background music using actual audio or uploaded file
+  // Create romantic background music
   const createRomanticMusic = useCallback(() => {
     if (!musicEnabled || backgroundMusic) return
 
-    // If user uploaded custom music, use that
     if (uploadedMusicUrl) {
       try {
         const audio = new Audio(uploadedMusicUrl)
@@ -249,27 +271,22 @@ export function GameComponent() {
           })
           .catch((error) => {
             console.log("Custom music play failed:", error)
-            // Fallback to generated music
             createGeneratedMusic()
           })
 
         return
       } catch (error) {
         console.log("Custom music creation failed:", error)
-        // Fallback to generated music
       }
     }
 
-    // Use generated romantic music as fallback
     createGeneratedMusic()
   }, [musicEnabled, backgroundMusic, uploadedMusicUrl, musicVolume])
 
   const createGeneratedMusic = useCallback(() => {
     try {
-      // Create a simple romantic melody using data URL
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
 
-      // Create a simple romantic tune
       const createTone = (frequency: number, duration: number, startTime: number) => {
         const oscillator = audioContext.createOscillator()
         const gainNode = audioContext.createGain()
@@ -289,39 +306,33 @@ export function GameComponent() {
         oscillator.stop(startTime + duration)
       }
 
-      // Play romantic melody
       const playMelody = () => {
         if (!musicEnabled || !musicPlaying) return
 
         const currentTime = audioContext.currentTime
         const noteDuration = 0.8
 
-        // Simple romantic melody: C-E-G-C-A-F-G-C
         const melody = [261.63, 329.63, 392.0, 523.25, 440.0, 349.23, 392.0, 523.25]
 
         melody.forEach((freq, index) => {
           createTone(freq, noteDuration, currentTime + index * noteDuration)
         })
 
-        // Add harmony
         const harmony = [130.81, 164.81, 196.0, 261.63, 220.0, 174.61, 196.0, 261.63]
         harmony.forEach((freq, index) => {
           createTone(freq, noteDuration, currentTime + index * noteDuration)
         })
       }
 
-      // Start playing
       playMelody()
       setMusicPlaying(true)
 
-      // Set up loop
       const musicInterval = setInterval(() => {
         if (musicEnabled && musicPlaying) {
           playMelody()
         }
-      }, 6400) // 8 notes * 0.8 seconds each
+      }, 6400)
 
-      // Create mock audio object for control
       const mockAudio = {
         pause: () => {
           clearInterval(musicInterval)
@@ -336,46 +347,9 @@ export function GameComponent() {
 
       setBackgroundMusic(mockAudio)
     } catch (error) {
-      console.log("Audio creation failed, trying alternative method:", error)
-
-      // Fallback: Create simple beep pattern
-      const playSimpleMusic = () => {
-        if (!soundEnabled) return
-
-        const beepPattern = [800, 1000, 1200, 800, 900, 700, 1000, 1200]
-        beepPattern.forEach((freq, index) => {
-          setTimeout(() => {
-            if (musicEnabled && musicPlaying) {
-              playSound(freq, 0.3, "catch")
-            }
-          }, index * 400)
-        })
-      }
-
-      playSimpleMusic()
-      setMusicPlaying(true)
-
-      const fallbackInterval = setInterval(() => {
-        if (musicEnabled && musicPlaying) {
-          playSimpleMusic()
-        }
-      }, 3200)
-
-      const fallbackAudio = {
-        pause: () => {
-          clearInterval(fallbackInterval)
-          setMusicPlaying(false)
-        },
-        play: () => {
-          setMusicPlaying(true)
-          playSimpleMusic()
-        },
-        volume: musicVolume,
-      } as HTMLAudioElement
-
-      setBackgroundMusic(fallbackAudio)
+      console.log("Audio creation failed:", error)
     }
-  }, [musicEnabled, musicPlaying, musicVolume, soundEnabled, playSound])
+  }, [musicEnabled, musicPlaying, musicVolume])
 
   const stopBackgroundMusic = useCallback(() => {
     if (backgroundMusic) {
@@ -432,32 +406,26 @@ export function GameComponent() {
     playVictorySound()
   }, [playVictorySound])
 
-  // VIDEO UPLOAD HANDLERS
+  // UPLOAD HANDLERS
   const handleVideoUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith("video/")) {
       alert("Please select a valid video file")
       return
     }
 
-    // Validate file size (max 50MB)
     if (file.size > 50 * 1024 * 1024) {
       alert("Video file is too large. Please select a file under 50MB.")
       return
     }
 
     setVideoUploading(true)
-
-    // Create object URL for the video
     const videoUrl = URL.createObjectURL(file)
     setUploadedVideoUrl(videoUrl)
     setVideoUploading(false)
-    setShowVideoUpload(false)
 
-    // Show success message
     setTimeout(() => {
       alert("Video uploaded successfully! 💕 It will play when you reach 50 hearts.")
     }, 500)
@@ -474,34 +442,26 @@ export function GameComponent() {
     fileInputRef.current?.click()
   }, [])
 
-  // CHARACTER UPLOAD HANDLERS
   const handleCharacterUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       alert("Please select a valid image file")
       return
     }
 
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert("Image file is too large. Please select a file under 10MB.")
       return
     }
 
     setCharacterUploading(true)
-
-    // Create object URL for the image
     const imageUrl = URL.createObjectURL(file)
     setUploadedCharacterUrl(imageUrl)
     setCharacterUploading(false)
-
-    // Reset image loaded state to reload with new image
     setImageLoaded(false)
 
-    // Show success message
     setTimeout(() => {
       alert("Character image uploaded successfully! 💕 Your custom character will appear in the game.")
     }, 500)
@@ -511,7 +471,7 @@ export function GameComponent() {
     if (uploadedCharacterUrl) {
       URL.revokeObjectURL(uploadedCharacterUrl)
       setUploadedCharacterUrl(null)
-      setImageLoaded(false) // Reset to reload default image
+      setImageLoaded(false)
     }
   }, [uploadedCharacterUrl])
 
@@ -519,38 +479,31 @@ export function GameComponent() {
     characterFileInputRef.current?.click()
   }, [])
 
-  // MUSIC UPLOAD HANDLERS
   const handleMusicUpload = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0]
       if (!file) return
 
-      // Validate file type
       if (!file.type.startsWith("audio/")) {
         alert("Please select a valid audio file (MP3, WAV, OGG)")
         return
       }
 
-      // Validate file size (max 20MB)
       if (file.size > 20 * 1024 * 1024) {
         alert("Audio file is too large. Please select a file under 20MB.")
         return
       }
 
       setMusicUploading(true)
-
-      // Create object URL for the audio
       const audioUrl = URL.createObjectURL(file)
       setUploadedMusicUrl(audioUrl)
       setMusicUploading(false)
 
-      // Stop current music
       if (backgroundMusic) {
         backgroundMusic.pause()
         setMusicPlaying(false)
       }
 
-      // Show success message
       setTimeout(() => {
         alert("Background music uploaded successfully! 🎵 It will play during the game.")
       }, 500)
@@ -567,7 +520,6 @@ export function GameComponent() {
       uploadedMusicRef.current.pause()
       uploadedMusicRef.current = null
     }
-    // Stop current music
     if (backgroundMusic) {
       backgroundMusic.pause()
       setMusicPlaying(false)
@@ -605,7 +557,6 @@ export function GameComponent() {
     setVideoMuted(false)
     setImageLoaded(false)
 
-    // Start romantic background music when game starts
     if (musicEnabled && !musicPlaying) {
       setTimeout(() => createRomanticMusic(), 500)
     }
@@ -653,11 +604,9 @@ export function GameComponent() {
 
   const gameLoop = useCallback(() => {
     if (gameState === "victory") {
-      // VICTORY ANIMATION LOOP
       setVictoryAnimationTime((prev) => prev + 0.1)
       setGirlCelebrationFrame((prev) => prev + 0.3)
 
-      // Update fireworks
       setFireworks((prev) =>
         prev
           .map((firework) => ({
@@ -667,7 +616,7 @@ export function GameComponent() {
                 ...particle,
                 x: particle.x + particle.vx,
                 y: particle.y + particle.vy,
-                vy: particle.vy + 0.1, // gravity
+                vy: particle.vy + 0.1,
                 life: particle.life - 1,
               }))
               .filter((particle) => particle.life > 0),
@@ -683,11 +632,9 @@ export function GameComponent() {
 
     const now = Date.now()
 
-    // Update animation time
     setAnimationTime((prev) => prev + 0.1)
     setBackgroundOffset((prev) => (prev + 0.5) % 100)
 
-    // Update girl animation
     if (isMovingLeft || isMovingRight) {
       setGirlAnimationFrame((prev) => (prev + 0.2) % 4)
     }
@@ -714,14 +661,11 @@ export function GameComponent() {
           setScore((prevScore) => {
             const newScore = prevScore + 1
 
-            // CHECK FOR VICTORY CONDITION
-            if (newScore >= 50) {
-              // Changed from targetScore to 50
+            if (newScore >= targetScore) {
               setTimeout(() => triggerVictoryAnimation(), 100)
               return newScore
             }
 
-            // Regular love message every 10 hearts
             if (newScore % 10 === 0 && loveMessages.length > 0) {
               const messageIndex = Math.floor((newScore / 10 - 1) % loveMessages.length)
               setCurrentMessage(loveMessages[messageIndex])
@@ -770,6 +714,7 @@ export function GameComponent() {
   }, [
     gameState,
     score,
+    targetScore,
     spawnHeart,
     checkCollision,
     createParticles,
@@ -780,12 +725,6 @@ export function GameComponent() {
     playMessageSound,
     triggerVictoryAnimation,
   ])
-
-  const cleanupMusicFn = useCallback(() => {
-    if (backgroundMusic) {
-      backgroundMusic.pause()
-    }
-  }, [backgroundMusic])
 
   useEffect(() => {
     if (gameState === "playing" || gameState === "victory") {
@@ -816,7 +755,6 @@ export function GameComponent() {
     // Background gradient
     let gradient
     if (gameState === "victory") {
-      // Rainbow gradient for victory
       gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT)
       gradient.addColorStop(0, "#FFE4E6")
       gradient.addColorStop(0.3, "#FFD700")
@@ -921,16 +859,14 @@ export function GameComponent() {
       })
     })
 
-    // Girl character - use the provided image
+    // Girl character
     const girlX = (girlPosition / 100) * CANVAS_WIDTH
     const girlY = CANVAS_HEIGHT - 120
 
-    // Create and load image if not already created or if character changed
     if (!girlImageRef.current || !imageLoaded) {
       girlImageRef.current = new Image()
       girlImageRef.current.crossOrigin = "anonymous"
-      // Use custom character if uploaded, otherwise use default
-      girlImageRef.current.src = uploadedCharacterUrl || "/girl-character.png"
+      girlImageRef.current.src = uploadedCharacterUrl || "/placeholder.svg?height=100&width=80"
       girlImageRef.current.onload = () => setImageLoaded(true)
       girlImageRef.current.onerror = () => {
         console.log("Failed to load character image")
@@ -938,18 +874,15 @@ export function GameComponent() {
       }
     }
 
-    // Draw girl character image
     if (girlImageRef.current && imageLoaded) {
       ctx.save()
       if (gameState === "victory") {
-        // VICTORY CELEBRATION ANIMATION
         const celebrationBounce = Math.sin(girlCelebrationFrame * 0.5) * 10
         const celebrationSway = Math.sin(girlCelebrationFrame * 0.3) * 5
         const celebrationScale = 1 + Math.sin(victoryAnimationTime * 2) * 0.1
         ctx.translate(girlX + celebrationSway, girlY + celebrationBounce)
         ctx.scale(celebrationScale, celebrationScale)
 
-        // Add sparkle effect around girl
         for (let i = 0; i < 8; i++) {
           const angle = (Math.PI * 2 * i) / 8 + victoryAnimationTime
           const sparkleX = Math.cos(angle) * 60
@@ -961,19 +894,16 @@ export function GameComponent() {
           ctx.restore()
         }
       } else {
-        // Normal animation
         const walkOffset = isMovingLeft || isMovingRight ? Math.sin(girlAnimationFrame) * 2 : 0
         const bounceOffset = Math.sin(animationTime * 2) * 1
         ctx.translate(girlX + walkOffset, girlY + bounceOffset)
       }
 
-      // Scale and draw the girl character image
       const girlWidth = 80
       const girlHeight = 100
       ctx.drawImage(girlImageRef.current, -girlWidth / 2, -girlHeight / 2, girlWidth, girlHeight)
       ctx.restore()
     } else {
-      // Fallback: simple placeholder while image loads
       ctx.save()
       ctx.translate(girlX, girlY)
       ctx.fillStyle = "#FF69B4"
@@ -996,7 +926,7 @@ export function GameComponent() {
     victoryAnimationTime,
     girlCelebrationFrame,
     imageLoaded,
-    uploadedCharacterUrl, // Add this dependency
+    uploadedCharacterUrl,
   ])
 
   // EVENT HANDLERS
@@ -1039,7 +969,6 @@ export function GameComponent() {
   }
 
   const startGame = () => {
-    // Initialize audio context with user interaction
     if (!audioInitialized) {
       try {
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
@@ -1056,7 +985,6 @@ export function GameComponent() {
     initGame()
     setGameState("playing")
 
-    // Start background music immediately
     if (musicEnabled) {
       setTimeout(() => {
         console.log("Starting background music...")
@@ -1088,7 +1016,6 @@ export function GameComponent() {
 
   const handleLoveYouToo = useCallback(() => {
     setHeartBurstActive(true)
-    // Create multiple heart bursts
     for (let i = 0; i < 10; i++) {
       setTimeout(() => {
         createFirework(Math.random() * CANVAS_WIDTH, Math.random() * CANVAS_HEIGHT)
@@ -1127,11 +1054,11 @@ export function GameComponent() {
     }
   }, [])
 
-  // Cleanup background music on unmount
-
   useEffect(() => {
     return () => {
-      cleanupMusicFn()
+      if (backgroundMusic) {
+        backgroundMusic.pause()
+      }
       if (uploadedMusicUrl) {
         URL.revokeObjectURL(uploadedMusicUrl)
       }
@@ -1139,16 +1066,13 @@ export function GameComponent() {
         uploadedMusicRef.current.pause()
       }
     }
-  }, [cleanupMusicFn, uploadedMusicUrl])
+  }, [backgroundMusic, uploadedMusicUrl])
 
-  // Add this useEffect after the existing useEffects
   useEffect(() => {
-    // Update volume for custom music
     if (uploadedMusicRef.current) {
       uploadedMusicRef.current.volume = musicVolume
     }
 
-    // Restart generated music when volume changes significantly
     if (backgroundMusic && musicPlaying && musicEnabled && !uploadedMusicUrl) {
       stopBackgroundMusic()
       setTimeout(() => createRomanticMusic(), 100)
@@ -1164,14 +1088,23 @@ export function GameComponent() {
   ])
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-200 p-4">
-      <div className="bg-black rounded-[40px] p-3 shadow-2xl">
-        <div className="bg-white rounded-[30px] overflow-hidden relative" style={{ width: "350px", height: "700px" }}>
+    <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-red-50 flex flex-col items-center justify-center p-4">
+      {/* Game Title */}
+      <div className="text-center mb-6">
+        <h1 className="text-4xl font-bold text-transparent bg-gradient-to-r from-pink-600 via-red-500 to-purple-600 bg-clip-text mb-2">
+          💕 Heart Catcher 💕
+        </h1>
+        <p className="text-gray-600 text-lg">A romantic web game of love and hearts</p>
+      </div>
+
+      {/* Game Container */}
+      <div className="bg-white rounded-3xl p-6 shadow-2xl border-4 border-pink-200">
+        <div className="relative" style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px` }}>
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="w-full h-full cursor-pointer"
+            className="w-full h-full cursor-pointer rounded-2xl border-2 border-pink-100"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -1179,10 +1112,11 @@ export function GameComponent() {
 
           {/* MENU SCREEN */}
           {gameState === "menu" && (
-            <div className="absolute inset-0 bg-pink-200/40 backdrop-blur-sm flex flex-col items-center justify-center">
+            <div className="absolute inset-0 bg-pink-200/40 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
               <div className="text-center text-pink-800 mb-8">
                 <h2 className="text-3xl font-bold mb-4">💕 Heart Catcher 💕</h2>
-                <p className="text-base mb-2">Touch left/right to move</p>
+                <p className="text-base mb-2">Use arrow keys or A/D to move</p>
+                <p className="text-base mb-2">Or click left/right to move</p>
                 <p className="text-base">Collect {targetScore} hearts to win!</p>
               </div>
               <div className="flex flex-col gap-4">
@@ -1207,7 +1141,7 @@ export function GameComponent() {
 
           {/* VICTORY SCREEN */}
           {gameState === "victory" && (
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-200/60 via-yellow-200/60 to-purple-200/60 backdrop-blur-sm flex flex-col items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-pink-200/60 via-yellow-200/60 to-purple-200/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
               <div className="text-center text-pink-800 mb-8 animate-bounce">
                 <h2 className="text-4xl font-bold mb-4">🎉 VICTORY! 🎉</h2>
                 <p className="text-xl mb-2">You collected all {targetScore} hearts!</p>
@@ -1234,7 +1168,7 @@ export function GameComponent() {
 
           {/* PAUSED SCREEN */}
           {gameState === "paused" && (
-            <div className="absolute inset-0 bg-pink-200/40 backdrop-blur-sm flex items-center justify-center">
+            <div className="absolute inset-0 bg-pink-200/40 backdrop-blur-sm flex items-center justify-center rounded-2xl">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-pink-800 mb-6">Game Paused</h2>
                 <Button onClick={pauseGame} className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-full">
@@ -1247,7 +1181,7 @@ export function GameComponent() {
 
           {/* SETTINGS SCREEN */}
           {gameState === "settings" && (
-            <div className="absolute inset-0 bg-white p-4 overflow-y-auto">
+            <div className="absolute inset-0 bg-white p-4 overflow-y-auto rounded-2xl">
               <div className="max-w-sm mx-auto">
                 <h2 className="text-2xl font-bold text-pink-700 mb-6 text-center">Game Settings</h2>
 
@@ -1424,7 +1358,6 @@ export function GameComponent() {
                           🗑️ Remove
                         </Button>
                       </div>
-                      {/* Music preview controls */}
                       <div className="flex gap-2 justify-center">
                         <Button
                           onClick={() => {
@@ -1519,7 +1452,7 @@ export function GameComponent() {
 
                 {/* MUSIC AND VOLUME CONTROLS */}
                 <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                  <Label className="text-purple-600 font-medium mb-3 block">🎵 Background Music</Label>
+                  <Label className="text-purple-600 font-medium mb-3 block">🎵 Audio Settings</Label>
 
                   <div className="flex gap-2 mb-3">
                     <Button
@@ -1540,7 +1473,6 @@ export function GameComponent() {
                     </Button>
                   </div>
 
-                  {/* Add test button */}
                   <div className="mb-3">
                     <Button
                       onClick={() => {
@@ -1576,212 +1508,4 @@ export function GameComponent() {
                       step="0.1"
                       value={musicVolume}
                       onChange={(e) => setMusicVolume(Number.parseFloat(e.target.value))}
-                      className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer slider"
-                    />
-                    <div className="text-xs text-gray-500 text-center">{Math.round(musicVolume * 100)}%</div>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => setGameState("menu")}
-                  className="w-full bg-pink-500 hover:bg-pink-600 text-white py-3 rounded-full"
-                >
-                  Back to Menu
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* LOVE MESSAGE POPUP */}
-          {showLoveMessage && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl border-3 border-pink-300 animate-in zoom-in-50 fade-in duration-500 mx-4">
-                <div className="text-center">
-                  <div className="text-3xl mb-2">💖✨💖</div>
-                  <p className="text-lg font-bold text-pink-600 mb-2 whitespace-pre-line">{currentMessage}</p>
-                  <div className="text-2xl">💕💫💕</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* GAME UI */}
-          {gameState === "playing" && (
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
-              <div className="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2">
-                <span className="text-pink-600 font-bold">
-                  Score: {score}/{targetScore}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                {/* Music indicator */}
-                {musicEnabled && (
-                  <Button
-                    onClick={toggleBackgroundMusic}
-                    size="sm"
-                    variant="outline"
-                    className={`border-purple-300 text-purple-600 bg-white/90 rounded-full ${musicPlaying ? "animate-pulse" : ""}`}
-                  >
-                    <Music className="w-3 h-3" />
-                  </Button>
-                )}
-                <Button
-                  onClick={pauseGame}
-                  size="sm"
-                  variant="outline"
-                  className="border-pink-300 text-pink-600 bg-white/90 rounded-full"
-                >
-                  <Pause className="w-3 h-3" />
-                </Button>
-                <Button
-                  onClick={resetGame}
-                  size="sm"
-                  variant="outline"
-                  className="border-pink-300 text-pink-600 bg-white/90 rounded-full"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* FULLSCREEN VIDEO PLAYER */}
-          {showVideo && (
-            <div className="absolute inset-0 z-50 bg-black flex items-center justify-center animate-in fade-in duration-1000">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                autoPlay
-                playsInline
-                onEnded={handleVideoEnd}
-                onCanPlay={() => {
-                  // Try to play with sound
-                  if (videoRef.current) {
-                    videoRef.current.muted = false
-                    videoRef.current.play().catch(() => {
-                      // If it fails, show audio enable button
-                      setShowAudioPrompt(true)
-                    })
-                  }
-                }}
-                style={{ maxWidth: "100%", maxHeight: "100%" }}
-              >
-                {uploadedVideoUrl ? (
-                  <source src={uploadedVideoUrl} type="video/mp4" />
-                ) : (
-                  <source src="/romantic-video.mp4" type="video/mp4" />
-                )}
-                Your browser does not support the video tag.
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-
-              {/* Video info overlay */}
-              {uploadedVideoUrl && (
-                <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  💕 Your Custom Video
-                </div>
-              )}
-
-              {/* Audio enable prompt */}
-              {showAudioPrompt && (
-                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-                  <div className="bg-white rounded-2xl p-6 text-center max-w-sm mx-4">
-                    <div className="text-4xl mb-4">🔊</div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-2">Enable Audio</h3>
-                    <p className="text-gray-600 mb-4">Tap to play video with sound</p>
-                    <button
-                      onClick={handleEnableAudio}
-                      className="bg-gradient-to-r from-pink-500 to-red-500 text-white px-6 py-3 rounded-full font-semibold hover:from-pink-600 hover:to-red-600 transition-all"
-                    >
-                      🎵 Play with Sound
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Manual audio controls */}
-              <div className="absolute bottom-4 right-4 flex gap-2">
-                <button
-                  onClick={toggleVideoAudio}
-                  className="bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-all"
-                >
-                  {videoMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* FINAL MESSAGE SCREEN */}
-          {showFinalMessage && (
-            <div className="absolute inset-0 z-50 bg-gradient-to-br from-pink-100 via-red-50 to-purple-100 flex flex-col items-center justify-center animate-in fade-in duration-1000">
-              {/* Animated background hearts */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {[...Array(20)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute animate-bounce"
-                    style={{
-                      left: `${Math.random() * 100}%`,
-                      top: `${Math.random() * 100}%`,
-                      animationDelay: `${Math.random() * 2}s`,
-                      animationDuration: `${2 + Math.random() * 2}s`,
-                    }}
-                  >
-                    💖
-                  </div>
-                ))}
-              </div>
-
-              {/* Main content */}
-              <div className="text-center z-10 px-6 max-w-sm">
-                <div className="mb-8 animate-in slide-in-from-top duration-1000">
-                  <h1 className="text-2xl font-bold text-transparent bg-gradient-to-r from-pink-600 via-red-500 to-purple-600 bg-clip-text mb-2 animate-pulse">
-                    Mera Pyara Sa Bugga 💓
-                  </h1>
-                  <p className="text-xl font-semibold text-pink-700 animate-pulse">I love you forever</p>
-                </div>
-
-                <div className="flex flex-col gap-4 animate-in slide-in-from-bottom duration-1000 delay-500">
-                  <button
-                    onClick={handleLoveYouToo}
-                    className="bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 text-white px-8 py-4 rounded-full text-lg font-semibold shadow-lg transform hover:scale-105 transition-all duration-300 animate-pulse"
-                    disabled={heartBurstActive}
-                  >
-                    💞 I love you too
-                  </button>
-
-                  <button
-                    onClick={handleReplay}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8 py-4 rounded-full text-lg font-semibold shadow-lg transform hover:scale-105 transition-all duration-300"
-                  >
-                    🔁 Replay
-                  </button>
-                </div>
-              </div>
-
-              {/* Heart burst effect */}
-              {heartBurstActive && (
-                <div className="absolute inset-0 pointer-events-none">
-                  {[...Array(50)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute text-2xl animate-ping"
-                      style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
-                        animationDelay: `${Math.random() * 1}s`,
-                        animationDuration: "2s",
-                      }}
-                    >
-                      💖
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
+                      className\
